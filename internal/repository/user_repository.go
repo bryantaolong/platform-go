@@ -25,7 +25,7 @@ func (r *UserRepository) GetByUsername(username string) (*model.User, error) {
 	return &user, err
 }
 
-func (r *UserRepository) GetByID(id uint) (*model.User, error) {
+func (r *UserRepository) GetByID(id uint64) (*model.User, error) {
 	var user model.User
 	err := r.db.First(&user, id).Error
 	return &user, err

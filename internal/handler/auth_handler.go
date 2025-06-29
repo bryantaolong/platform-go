@@ -57,7 +57,7 @@ func (h *AuthHandler) GetCurrentUser(c *gin.Context) {
 		return
 	}
 
-	user, err := h.authService.GetUserByID(userID.(uint))
+	user, err := h.authService.GetUserByID(userID.(uint64))
 	if err != nil {
 		c.JSON(http.StatusNotFound, response.Error(404, "用户不存在"))
 		return

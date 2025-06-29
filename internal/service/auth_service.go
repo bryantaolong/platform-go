@@ -80,6 +80,6 @@ func (s *AuthService) Login(req *model.LoginRequest) (string, error) {
 	return token, nil
 }
 
-func (s *AuthService) GetUserByID(id uint) (*model.User, error) {
+func (s *AuthService) GetUserByID(id uint64) (*model.User, error) {
 	return s.userRepo.GetByID(id)
 }
