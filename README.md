@@ -1,5 +1,5 @@
 # Platform Go
-My Platform Go backend mirror
+My Platform system Go backend service code source
 
 ## Environment
 
