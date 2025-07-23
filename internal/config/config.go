@@ -1,12 +1,13 @@
 package config
 
 import (
-	"github.com/bryantaolong/platform/internal/model"
-	"github.com/joho/godotenv"
-	"gorm.io/driver/mysql"
-	"gorm.io/gorm"
 	"log"
 	"os"
+
+	"github.com/bryantaolong/platform/internal/model"
+	"github.com/joho/godotenv"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
 type Config struct {
@@ -17,6 +18,7 @@ type Config struct {
 	DBUser    string
 	DBPass    string
 	DBName    string
+	SSLMode   string
 }
 
 func Load() *Config {
@@ -26,13 +28,14 @@ func Load() *Config {
 	}
 
 	return &Config{
-		Port:      getEnv("PORT", "8080"),
+		Port:      getEnv("PORT", "8081"),
 		JWTSecret: getEnv("JWT_SECRET", "ThisIsAVerySecretKeyForYourJWTAuthenticationAndItShouldBeLongEnough"),
 		DBHost:    getEnv("DB_HOST", "localhost"),
-		DBPort:    getEnv("DB_PORT", "3306"),
-		DBUser:    getEnv("DB_USER", "root"),
+		DBPort:    getEnv("DB_PORT", "5432"),
+		DBUser:    getEnv("DB_USER", "platform_user"),
 		DBPass:    getEnv("DB_PASS", "123456"),
 		DBName:    getEnv("DB_NAME", "platform"),
+		SSLMode:   getEnv("SSL_MODE", "disable"),
 	}
 }
 
@@ -44,16 +47,35 @@ func getEnv(key, defaultValue string) string {
 }
 
 func InitDB(cfg *Config) *gorm.DB {
-	dsn := cfg.DBUser + ":" + cfg.DBPass + "@tcp(" + cfg.DBHost + ":" + cfg.DBPort + ")/" + cfg.DBName + "?charset=utf8mb4&parseTime=True&loc=Local"
+	dsn := "host=" + cfg.DBHost +
+		" user=" + cfg.DBUser +
+		" password=" + cfg.DBPass +
+		" dbname=" + cfg.DBName +
+		" port=" + cfg.DBPort +
+		" sslmode=" + cfg.SSLMode +
+		" TimeZone=Asia/Shanghai"
 
-	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		log.Fatal("数据库连接失败:", err)
 	}
 
-	// 自动迁移
-	if err := db.AutoMigrate(&model.User{}); err != nil {
+	// 安全迁移模式
+	if err := db.Migrator().AutoMigrate(&model.User{}); err != nil {
 		log.Fatal("数据库迁移失败:", err)
+	}
+
+	// 确保索引存在
+	if !db.Migrator().HasIndex(&model.User{}, "idx_username") {
+		if err := db.Migrator().CreateIndex(&model.User{}, "Username"); err != nil {
+			log.Fatal("创建索引失败:", err)
+		}
+	}
+
+	if !db.Migrator().HasIndex(&model.User{}, "idx_deleted") {
+		if err := db.Migrator().CreateIndex(&model.User{}, "Deleted"); err != nil {
+			log.Fatal("创建索引失败:", err)
+		}
 	}
 
 	return db
